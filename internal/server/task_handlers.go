@@ -3,14 +3,14 @@ package server
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"toDoList/internal/domain/models"
-	"toDoList/internal/service"
+	"toDoList/internal/domain/task/task_models"
+	"toDoList/internal/service/task"
 )
 
 // обрабатываем для вывода, возвращаем респонсы с ошибками и проч.
 
-func getTasks(ctx *gin.Context) {
-	tasks := service.GetAllTasksInMap()
+func GetTasks(ctx *gin.Context) {
+	tasks := task.GetAllTasksInMap()
 	if len(tasks) != 0 {
 		ctx.JSON(http.StatusOK, tasks)
 	} else {
@@ -18,9 +18,9 @@ func getTasks(ctx *gin.Context) {
 	}
 }
 
-func getTaskByID(ctx *gin.Context) {
+func GetTaskByID(ctx *gin.Context) {
 	taskID := ctx.Param("id")
-	foundedTask, err := service.GetTaskByID(taskID)
+	foundedTask, err := task.GetTaskByID(taskID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -28,13 +28,13 @@ func getTaskByID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, foundedTask)
 }
 
-func createTask(ctx *gin.Context) {
-	var newTask models.Task
+func CreateTask(ctx *gin.Context) {
+	var newTask task_models.Task
 	if err := ctx.ShouldBindBodyWithJSON(&newTask); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	taskID, err := service.CreateNewTask(newTask)
+	taskID, err := task.CreateNewTask(newTask)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -42,15 +42,15 @@ func createTask(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"TaskID": taskID})
 }
 
-func updateTask(ctx *gin.Context) {
+func UpdateTask(ctx *gin.Context) {
 	taskID := ctx.Param("id")
-	var newTask models.Task
+	var newTask task_models.Task
 	if err := ctx.ShouldBindBodyWithJSON(&newTask); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 	newTask.ID = taskID
-	taskID, err := service.UpdateTask(newTask)
+	taskID, err := task.UpdateTask(newTask)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
@@ -58,9 +58,9 @@ func updateTask(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"TaskID": taskID})
 }
 
-func deleteTask(ctx *gin.Context) {
+func DeleteTask(ctx *gin.Context) {
 	taskID := ctx.Param("id")
-	if err := service.DeleteTaskByID(taskID); err != nil {
+	if err := task.DeleteTaskByID(taskID); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}

@@ -1,4 +1,4 @@
-package errors
+package task_errors
 
 import "errors"
 
