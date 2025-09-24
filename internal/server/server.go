@@ -2,17 +2,23 @@ package server
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
 	"toDoList/internal"
+	"toDoList/internal/domain/user/user_models"
+	auth "toDoList/internal/server/auth/user_auth"
+	"toDoList/internal/server/middleware"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserStorage interface {
-	GetAllUsers()
-	SaveUser(user userDomain.User) error
-	GetUser(userReq userDomain.UserRequest) (userDomain.User, error)
-	UpdateUser()
+	GetAllUsers() []user_models.User
+	SaveUser(user user_models.User) (user_models.User, error)
+	GetUserByID(userID string) (user_models.User, error)
+	GetUserByEmail(email string) (user_models.User, error)
+	UpdateUser(user user_models.User) (user_models.User, error)
+	DeleteUser(userID string) error
 }
 
 type TaskStorage interface {
@@ -67,21 +73,22 @@ func (api *ToDoListApi) configRouter() {
 
 	tasks := router.Group("/tasks")
 	{
-		tasks.GET("/", GetTasks)
-		tasks.GET("/:id", GetTaskByID)
-		tasks.POST("/", CreateTask)
-		tasks.PUT("/:id", UpdateTask)
-		tasks.DELETE("/:id", DeleteTask)
+		tasks.GET("/", api.getTasks)
+		tasks.GET("/:id", api.getTaskByID)
+		tasks.POST("/", api.createTask)
+		tasks.PUT("/:id", api.updateTask)
+		tasks.DELETE("/:id", api.deleteTask)
 	}
 
 	users := router.Group("/users")
 	{
-		users.GET("/", GetAllUsers)
-		users.GET("/:id", GetUserByID)
-		users.POST("/register", Register)
-		users.POST("/login", Login)
-		users.PUT("/:id", UpdateUser)
-		users.DELETE("/:id", DeleteUser)
+		users.GET("/", api.getAllUsers)
+		users.GET("/:id", api.getUserByID)
+		users.POST("/register", api.register)
+		users.POST("/login", api.login)
+		users.POST("/admin-login", api.loginAdmin)
+		users.PUT("/:id", middleware.AuthMiddleware(api.tokenSigner), api.updateUser)
+		users.DELETE("/:id", middleware.AuthMiddleware(api.tokenSigner), api.deleteUser)
 	}
 
 	api.srv.Handler = router
