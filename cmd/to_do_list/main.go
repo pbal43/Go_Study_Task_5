@@ -5,6 +5,7 @@ import (
 	"log"
 	"toDoList/internal"
 	"toDoList/internal/repository/db"
+	"toDoList/internal/repository/inmemory"
 	"toDoList/internal/server"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -15,16 +16,21 @@ func main() {
 	// конфигураця приложения
 	fmt.Println("To-do-list Api is starting")
 	cfg := internal.ReadConfig()
+	
+	var database server.Storage
 
 	// конфигураця и создание хранилища
-	database, err := db.NewStorage(cfg.DNS)
+	postgresDB, err := db.NewStorage(cfg.DNS)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	// запуск миграции
-	if err := db.Migrations(cfg.DNS, cfg.MigratePath); err != nil {
-		log.Fatal(err)
+		log.Printf("Postgres недоступен (%v), используем in-memory storage", err)
+		inmemoryDB := inmemory.NewInMemoryStorage()
+		database = inmemoryDB
+	} else {
+		database = postgresDB
+		// запуск миграции
+		if err := db.Migrations(cfg.DNS, cfg.MigratePath); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// конфигурация и запуск веб-сервера
