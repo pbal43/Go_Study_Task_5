@@ -1,4 +1,4 @@
-package models
+package task_models
 
 type TaskStatus string
 
@@ -17,9 +17,14 @@ func (s TaskStatus) IsValid() bool {
 	}
 }
 
-type Task struct { // можно было сделать ID и Подструктура Attributes
-	ID          string     `json:"id,omitempty"`
+type Task struct {
+	ID         string         `json:"id,omitempty" validate:"required"`
+	UserID     string         `json:"user_uid,omitempty" validate:"required"`
+	Attributes TaskAttributes `json:"attributes,omitempty" validate:"required"`
+}
+
+type TaskAttributes struct {
+	Status      TaskStatus `json:"status" validate:"required"`
 	Title       string     `json:"title" validate:"required,min=1"`
 	Description string     `json:"description" validate:"required,min=1"`
-	Status      TaskStatus `json:"status" validate:"required"`
 }
