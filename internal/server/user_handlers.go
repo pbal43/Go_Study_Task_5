@@ -61,10 +61,10 @@ func (srv *ToDoListApi) register(ctx *gin.Context) {
 	}
 
 	service := user_service.NewUserService(srv.db)
-	savedUser, err := service.SaveUser(user) // отдать с ID, внутри замапить в другую структуру и вернуть
+	savedUser, err := service.SaveUser(user)
 	if err != nil {
 		if errors.Is(err, user_errors.ErrorUserIsAlreadyExist) {
-			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusConflict, gin.H{"error": user_errors.ErrorUserIsAlreadyExist})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -86,7 +86,7 @@ func (srv *ToDoListApi) login(ctx *gin.Context) {
 	user, err := service.LoginUser(usLogReq)
 	if err != nil {
 		if errors.Is(err, user_errors.ErrorInvalidPassword) || errors.Is(err, user_errors.ErrorUserNotExist) {
-			ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": user_errors.ErrorNotValidCreds.Error()})
 			return
 		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

@@ -31,10 +31,10 @@ func (ts *taskStorage) GetAllTasks(userID string) ([]task_models.Task, error) {
 
 		if err := rows.Scan(
 			&task.ID,
-			task.UserID,
-			task.Attributes.Status,
-			task.Attributes.Title,
-			task.Attributes.Description,
+			&task.UserID,
+			&task.Attributes.Status,
+			&task.Attributes.Title,
+			&task.Attributes.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -55,12 +55,15 @@ func (ts *taskStorage) GetTaskByID(taskID string, userID string) (task_models.Ta
 	err := ts.db.QueryRow(ctx, "SELECT * FROM tasks WHERE id = $1 AND userid = $2", taskID, userID).
 		Scan(
 			&task.ID,
-			task.UserID,
-			task.Attributes.Status,
-			task.Attributes.Title,
-			task.Attributes.Description,
+			&task.UserID,
+			&task.Attributes.Status,
+			&task.Attributes.Title,
+			&task.Attributes.Description,
 		)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return task_models.Task{}, task_errors.FoundNothingErr
+		}
 		return task_models.Task{}, err
 	}
 

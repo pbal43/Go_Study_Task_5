@@ -54,7 +54,7 @@ func (srv *ToDoListApi) getTaskByID(ctx *gin.Context) {
 	taskService := task_service.NewTaskService(srv.db)
 	foundedTask, err := taskService.GetTaskByID(taskID, userID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -137,7 +137,8 @@ func (srv *ToDoListApi) deleteTask(ctx *gin.Context) {
 		return
 	}
 
-	if err := task_service.DeleteTaskByID(taskID, userID); err != nil {
+	taskService := task_service.NewTaskService(srv.db)
+	if err := taskService.DeleteTaskByID(taskID, userID); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}

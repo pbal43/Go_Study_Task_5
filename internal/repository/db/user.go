@@ -47,6 +47,9 @@ func (us *userStorage) GetUserByID(userID string) (user_models.User, error) {
 	err := us.db.QueryRow(ctx, "SELECT * FROM users WHERE uuid = $1", userID).
 		Scan(&user.Uuid, &user.Name, &user.Email, &user.Password)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return user_models.User{}, user_errors.ErrorUserNotExist
+		}
 		return user_models.User{}, err
 	}
 
@@ -61,6 +64,9 @@ func (us *userStorage) GetUserByEmail(email string) (user_models.User, error) {
 	err := us.db.QueryRow(ctx, "SELECT * FROM users WHERE email = $1", email).
 		Scan(&user.Uuid, &user.Name, &user.Email, &user.Password)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return user_models.User{}, user_errors.ErrorUserNotExist
+		}
 		return user_models.User{}, err
 	}
 

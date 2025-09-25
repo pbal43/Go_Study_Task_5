@@ -48,6 +48,12 @@ func (ts *TaskService) CreateTask(newTaskAttributes task_models.TaskAttributes, 
 		return "", err
 	}
 
+	taskStatusValid := newTaskAttributes.Status.IsValid()
+
+	if !taskStatusValid {
+		return "", task_errors.WrongStatusErr
+	}
+
 	var newTask task_models.Task
 
 	newTask.ID = uuid.New().String()
@@ -66,6 +72,12 @@ func (ts *TaskService) UpdateTask(taskID string, userID string, newAttributes ta
 	err := ts.valid.Struct(newAttributes)
 	if err != nil {
 		return err
+	}
+
+	taskStatusValid := newAttributes.Status.IsValid()
+
+	if !taskStatusValid {
+		return task_errors.WrongStatusErr
 	}
 
 	task, err := ts.db.GetTaskByID(taskID, userID)
@@ -90,37 +102,3 @@ func (ts *TaskService) DeleteTaskByID(taskID string, userID string) error {
 	}
 	return nil
 }
-
-//func CreateNewTask(task task_models.Task) (string, error) {
-//	task.ID = uuid.New().String()
-//	validatorForTask := validator.New()
-//	if err := validatorForTask.Struct(task); err != nil {
-//		return "", err
-//	}
-//	if !task.Status.IsValid() {
-//		return "", task2.WrongStatusErr
-//	}
-//	repository.AddTask(task)
-//	return task.ID, nil
-//}
-//
-//func UpdateTask(task task_models.Task) (string, error) {
-//	validatorForTask := validator.New()
-//	if err := validatorForTask.Struct(task); err != nil {
-//		return "", err
-//	}
-//	if !task.Status.IsValid() {
-//		return "", task2.WrongStatusErr
-//	}
-//	if err := repository.UpdateExistedTask(task); err != nil {
-//		return "", err
-//	}
-//	return task.ID, nil
-//}
-//
-//func DeleteTaskByID(taskID string) error {
-//	if err := repository.DeleteExistedTask(taskID); err != nil {
-//		return err
-//	}
-//	return nil
-//}
