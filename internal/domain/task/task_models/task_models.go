@@ -24,7 +24,7 @@ type Task struct {
 }
 
 type TaskAttributes struct {
+	Status      TaskStatus `json:"status" validate:"required"`
 	Title       string     `json:"title" validate:"required,min=1"`
 	Description string     `json:"description" validate:"required,min=1"`
-	Status      TaskStatus `json:"status" validate:"required"`
 }

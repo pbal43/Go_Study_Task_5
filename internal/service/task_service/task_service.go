@@ -1,71 +1,126 @@
 package task_service
 
 import (
+	"toDoList/internal/domain/task/task_errors"
+	"toDoList/internal/domain/task/task_models"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	task2 "toDoList/internal/domain/task/task_errors"
-	"toDoList/internal/domain/task/task_models"
-	"toDoList/internal/repository"
 )
 
-func GetAllTasksInMap() map[string]any {
-	allTasks := repository.GetAllTasksFromDB()
-	allTasksMapped := make(map[string]any)
-	for _, task := range allTasks {
-		allTasksMapped[task.ID] = struct {
-			Title       string          `json:"title"`
-			Description string          `json:"description"`
-			Status      task.TaskStatus `json:"status"`
-		}{
-			Title:       task.Title,
-			Description: task.Description,
-			Status:      task.Status,
-		}
-	}
-	return allTasksMapped
+type TaskStorage interface {
+	GetAllTasks(userID string) ([]task_models.Task, error)
+	GetTaskByID(taskID string, userID string) (task_models.Task, error)
+	AddTask(newTask task_models.Task) error
+	UpdateTaskAttributes(task task_models.Task) error
+	DeleteTask(taskID string, userID string) error
 }
 
-func GetTaskByID(taskID string) (task_models.Task, error) {
+type TaskService struct {
+	db    TaskStorage
+	valid *validator.Validate
+}
+
+func NewTaskService(db TaskStorage) *TaskService {
+	return &TaskService{db: db, valid: validator.New()}
+}
+
+func (ts *TaskService) GetAllTasks(userID string) ([]task_models.Task, error) {
+	return ts.db.GetAllTasks(userID)
+}
+
+func (ts *TaskService) GetTaskByID(taskID string, userID string) (task_models.Task, error) {
 	if taskID == "" {
-		return task_models.Task{}, task2.EpmtyStringErr
+		return task_models.Task{}, task_errors.EpmtyStringErr
 	}
-	task, _, err := repository.GetOneTaskByID(taskID)
+
+	task, err := ts.db.GetTaskByID(taskID, userID)
 	if err != nil {
-		return task.Task{}, err
+		return task_models.Task{}, err
 	}
-	return *task, nil
+
+	return task, nil
 }
 
-func CreateNewTask(task task_models.Task) (string, error) {
-	task.ID = uuid.New().String()
-	validatorForTask := validator.New()
-	if err := validatorForTask.Struct(task); err != nil {
+func (ts *TaskService) CreateTask(newTaskAttributes task_models.TaskAttributes, userID string) (string, error) {
+	err := ts.valid.Struct(newTaskAttributes)
+	if err != nil {
 		return "", err
 	}
-	if !task.Status.IsValid() {
-		return "", task2.WrongStatusErr
+
+	var newTask task_models.Task
+
+	newTask.ID = uuid.New().String()
+	newTask.UserID = userID
+	newTask.Attributes = newTaskAttributes
+
+	err = ts.db.AddTask(newTask)
+	if err != nil {
+		return "", err
 	}
-	repository.AddTask(task)
-	return task.ID, nil
+
+	return newTask.ID, nil
 }
 
-func UpdateTask(task task_models.Task) (string, error) {
-	validatorForTask := validator.New()
-	if err := validatorForTask.Struct(task); err != nil {
-		return "", err
+func (ts *TaskService) UpdateTask(taskID string, userID string, newAttributes task_models.TaskAttributes) error {
+	err := ts.valid.Struct(newAttributes)
+	if err != nil {
+		return err
 	}
-	if !task.Status.IsValid() {
-		return "", task2.WrongStatusErr
+
+	task, err := ts.db.GetTaskByID(taskID, userID)
+	if err != nil {
+		return err
 	}
-	if err := repository.UpdateExistedTask(task); err != nil {
-		return "", err
+
+	task.Attributes = newAttributes
+
+	err = ts.db.UpdateTaskAttributes(task)
+	if err != nil {
+		return err
 	}
-	return task.ID, nil
+
+	return nil
 }
 
-func DeleteTaskByID(taskID string) error {
-	if err := repository.DeleteExistedTask(taskID); err != nil {
+func (ts *TaskService) DeleteTaskByID(taskID string, userID string) error {
+	err := ts.db.DeleteTask(taskID, userID)
+	if err != nil {
 		return err
 	}
 	return nil
 }
+
+//func CreateNewTask(task task_models.Task) (string, error) {
+//	task.ID = uuid.New().String()
+//	validatorForTask := validator.New()
+//	if err := validatorForTask.Struct(task); err != nil {
+//		return "", err
+//	}
+//	if !task.Status.IsValid() {
+//		return "", task2.WrongStatusErr
+//	}
+//	repository.AddTask(task)
+//	return task.ID, nil
+//}
+//
+//func UpdateTask(task task_models.Task) (string, error) {
+//	validatorForTask := validator.New()
+//	if err := validatorForTask.Struct(task); err != nil {
+//		return "", err
+//	}
+//	if !task.Status.IsValid() {
+//		return "", task2.WrongStatusErr
+//	}
+//	if err := repository.UpdateExistedTask(task); err != nil {
+//		return "", err
+//	}
+//	return task.ID, nil
+//}
+//
+//func DeleteTaskByID(taskID string) error {
+//	if err := repository.DeleteExistedTask(taskID); err != nil {
+//		return err
+//	}
+//	return nil
+//}

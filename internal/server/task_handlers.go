@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"toDoList/internal/domain/task/task_models"
 	"toDoList/internal/service/task_service"
@@ -11,7 +12,23 @@ import (
 // обрабатываем для вывода, возвращаем респонсы с ошибками и проч.
 
 func (srv *ToDoListApi) getTasks(ctx *gin.Context) {
-	tasks := task_service.GetAllTasksInMap()
+	userIDFromCtx, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDFromCtx.(string)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "userID has wrong type"})
+		return
+	}
+
+	taskService := task_service.NewTaskService(srv.db)
+	tasks, err := taskService.GetAllTasks(userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}
 	if len(tasks) != 0 {
 		ctx.JSON(http.StatusOK, tasks)
 	} else {
@@ -21,47 +38,106 @@ func (srv *ToDoListApi) getTasks(ctx *gin.Context) {
 
 func (srv *ToDoListApi) getTaskByID(ctx *gin.Context) {
 	taskID := ctx.Param("id")
-	foundedTask, err := task_service.GetTaskByID(taskID)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
+
+	userIDFromCtx, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
+
+	userID, ok := userIDFromCtx.(string)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "userID has wrong type"})
+		return
+	}
+
+	taskService := task_service.NewTaskService(srv.db)
+	foundedTask, err := taskService.GetTaskByID(taskID, userID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, err)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, foundedTask)
 }
 
 func (srv *ToDoListApi) createTask(ctx *gin.Context) {
-	var newTask task_models.Task
-	if err := ctx.ShouldBindBodyWithJSON(&newTask); err != nil {
+	userIDFromCtx, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDFromCtx.(string)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "userID has wrong type"})
+		return
+	}
+
+	var newTaskAttributes task_models.TaskAttributes
+	if err := ctx.ShouldBindBodyWithJSON(&newTaskAttributes); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	taskID, err := task_service.CreateNewTask(newTask)
+
+	taskService := task_service.NewTaskService(srv.db)
+	taskID, err := taskService.CreateTask(newTaskAttributes, userID)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
+
 	ctx.JSON(http.StatusOK, gin.H{"TaskID": taskID})
 }
 
+// ТУТ
+
 func (srv *ToDoListApi) updateTask(ctx *gin.Context) {
 	taskID := ctx.Param("id")
-	var newTask task_models.Task
-	if err := ctx.ShouldBindBodyWithJSON(&newTask); err != nil {
+
+	userIDFromCtx, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDFromCtx.(string)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "userID has wrong type"})
+		return
+	}
+
+	var newAttributes task_models.TaskAttributes
+	if err := ctx.ShouldBindBodyWithJSON(&newAttributes); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	newTask.ID = taskID
-	taskID, err := task_service.UpdateTask(newTask)
+
+	taskService := task_service.NewTaskService(srv.db)
+	err := taskService.UpdateTask(taskID, userID, newAttributes)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err.Error())
+		ctx.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-	ctx.JSON(http.StatusOK, gin.H{"TaskID": taskID})
+
+	ctx.JSON(http.StatusOK, fmt.Sprintf("TaskID: %s was updated", taskID))
 }
 
 func (srv *ToDoListApi) deleteTask(ctx *gin.Context) {
 	taskID := ctx.Param("id")
-	if err := task_service.DeleteTaskByID(taskID); err != nil {
+	userIDFromCtx, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, ok := userIDFromCtx.(string)
+	if !ok {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "userID has wrong type"})
+		return
+	}
+
+	if err := task_service.DeleteTaskByID(taskID, userID); err != nil {
 		ctx.JSON(http.StatusBadRequest, err.Error())
 		return
 	}

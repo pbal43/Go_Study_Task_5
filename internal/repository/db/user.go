@@ -8,7 +8,7 @@ import (
 	"toDoList/internal/domain/user/user_models"
 
 	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 )
 
 type userStorage struct {

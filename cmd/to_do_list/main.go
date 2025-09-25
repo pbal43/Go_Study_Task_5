@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"log"
 	"toDoList/internal"
+	"toDoList/internal/repository/db"
 	"toDoList/internal/server"
+
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func main() {

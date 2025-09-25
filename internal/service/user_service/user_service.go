@@ -10,7 +10,7 @@ import (
 )
 
 type UserStorage interface {
-	GetAllUsers() []user_models.User
+	GetAllUsers() ([]user_models.User, error)
 	SaveUser(user user_models.User) (user_models.User, error)
 	GetUserByID(userID string) (user_models.User, error)
 	GetUserByEmail(email string) (user_models.User, error)
@@ -27,7 +27,7 @@ func NewUserService(db UserStorage) *UserService {
 	return &UserService{db: db, valid: validator.New()}
 }
 
-func (us *UserService) GetAllUsers() []user_models.User {
+func (us *UserService) GetAllUsers() ([]user_models.User, error) {
 	return us.db.GetAllUsers()
 }
 

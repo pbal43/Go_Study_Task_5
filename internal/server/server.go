@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 	"toDoList/internal"
+	"toDoList/internal/domain/task/task_models"
 	"toDoList/internal/domain/user/user_models"
 	auth "toDoList/internal/server/auth/user_auth"
 	"toDoList/internal/server/middleware"
@@ -13,7 +14,7 @@ import (
 )
 
 type UserStorage interface {
-	GetAllUsers() []user_models.User
+	GetAllUsers() ([]user_models.User, error)
 	SaveUser(user user_models.User) (user_models.User, error)
 	GetUserByID(userID string) (user_models.User, error)
 	GetUserByEmail(email string) (user_models.User, error)
@@ -22,10 +23,11 @@ type UserStorage interface {
 }
 
 type TaskStorage interface {
-	GetAllTasks()
-	GetOneTaskByID()
-	AddTask()
-	UpdateTask()
+	GetAllTasks(userID string) ([]task_models.Task, error)
+	GetTaskByID(taskID string, userID string) (task_models.Task, error)
+	AddTask(newTask task_models.Task) error
+	UpdateTaskAttributes(task task_models.Task) error
+	DeleteTask(taskID string, userID string) error
 }
 
 type Storage interface {
@@ -73,17 +75,17 @@ func (api *ToDoListApi) configRouter() {
 
 	tasks := router.Group("/tasks")
 	{
-		tasks.GET("/", api.getTasks)
-		tasks.GET("/:id", api.getTaskByID)
-		tasks.POST("/", api.createTask)
-		tasks.PUT("/:id", api.updateTask)
-		tasks.DELETE("/:id", api.deleteTask)
+		tasks.GET("/", middleware.AuthMiddleware(api.tokenSigner), api.getTasks)
+		tasks.GET("/:id", middleware.AuthMiddleware(api.tokenSigner), api.getTaskByID)
+		tasks.POST("/", middleware.AuthMiddleware(api.tokenSigner), api.createTask)
+		tasks.PUT("/:id", middleware.AuthMiddleware(api.tokenSigner), api.updateTask)
+		tasks.DELETE("/:id", middleware.AuthMiddleware(api.tokenSigner), api.deleteTask)
 	}
 
 	users := router.Group("/users")
 	{
-		users.GET("/", api.getAllUsers)
-		users.GET("/:id", api.getUserByID)
+		users.GET("/", api.getAllUsers) // TODO: чисто админская
+		users.GET("/:id", middleware.AuthMiddleware(api.tokenSigner), api.getUserByID)
 		users.POST("/register", api.register)
 		users.POST("/login", api.login)
 		users.POST("/admin-login", api.loginAdmin)

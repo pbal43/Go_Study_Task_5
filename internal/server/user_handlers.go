@@ -13,8 +13,10 @@ import (
 // TODO: + Админская ручка + форбидден для всех остальных
 func (srv *ToDoListApi) getAllUsers(ctx *gin.Context) {
 	usersService := user_service.NewUserService(srv.db)
-	users := usersService.GetAllUsers()
-
+	users, err := usersService.GetAllUsers()
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	}
 	if len(users) != 0 {
 		ctx.JSON(http.StatusOK, users)
 	} else {
